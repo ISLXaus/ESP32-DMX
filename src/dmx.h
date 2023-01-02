@@ -22,9 +22,25 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "driver/uart.h"
+#include "driver/gpio.h"    //added gpio.h
 
 #ifndef DMX_h
 #define DMX_h
+
+#define DMX_SERIAL_INPUT_PIN    GPIO_NUM_20 // pin for dmx rx
+#define DMX_SERIAL_OUTPUT_PIN   GPIO_NUM_21 // pin for dmx tx
+#define DMX_SERIAL_IO_PIN       GPIO_NUM_10  // pin for dmx rx/tx change
+
+#define DMX_UART_NUM            UART_NUM_1  // dmx uart
+
+#define HEALTHY_TIME            500         // timeout in ms 
+
+#define BUF_SIZE                1024        //  buffer size for rx events
+
+#define DMX_CORE                1           // select the core the rx/tx thread should run on
+
+#define DMX_IGNORE_THREADSAFETY 0           // set to 1 to disable all threadsafe mechanisms
+
 
 enum DMXDirection { input, output };
 enum DMXState { DMX_IDLE, DMX_BREAK, DMX_DATA, DMX_OUTPUT };
