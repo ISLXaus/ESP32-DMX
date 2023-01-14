@@ -15,6 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <Arduino.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -29,7 +30,7 @@
 
 #define DMX_SERIAL_INPUT_PIN    GPIO_NUM_20 // pin for dmx rx
 #define DMX_SERIAL_OUTPUT_PIN   GPIO_NUM_21 // pin for dmx tx
-#define DMX_SERIAL_IO_PIN       GPIO_NUM_10  // pin for dmx rx/tx change
+#define DMX_SERIAL_IO_PIN       GPIO_NUM_1  // pin for dmx rx/tx change
 
 #define DMX_UART_NUM            UART_NUM_1  // dmx uart
 
@@ -37,9 +38,9 @@
 
 #define BUF_SIZE                1024        //  buffer size for rx events
 
-#define DMX_CORE                1           // select the core the rx/tx thread should run on
+#define DMX_CORE                0           // select the core the rx/tx thread should run on
 
-#define DMX_IGNORE_THREADSAFETY 0           // set to 1 to disable all threadsafe mechanisms
+// #define DMX_IGNORE_THREADSAFETY 1           // set to 1 to disable all threadsafe mechanisms
 
 
 enum DMXDirection { input, output };

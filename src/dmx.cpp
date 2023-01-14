@@ -68,6 +68,7 @@ void DMX::Initialize(DMXDirection direction)
         dmx_state = DMX_OUTPUT;
         
         // create send task
+
         xTaskCreatePinnedToCore(DMX::uart_send_task, "uart_send_task", 1024, NULL, 1, NULL, DMX_CORE);
     }
     else
@@ -187,6 +188,7 @@ void DMX::uart_send_task(void*pvParameters)
         xSemaphoreTake(sync_dmx, portMAX_DELAY);
 #endif
         // transmit the dmx data
+        
         uart_write_bytes(DMX_UART_NUM, (const char*) dmx_data+1, 512);
 #ifndef DMX_IGNORE_THREADSAFETY
         xSemaphoreGive(sync_dmx);

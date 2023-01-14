@@ -7,8 +7,8 @@ void setup() {
   Serial.begin(115200);
 
   DMX::Initialize(output);
-
   DMX::Write(8, 69);
+  
 }
 
 void loop()
