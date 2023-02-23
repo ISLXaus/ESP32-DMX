@@ -60,6 +60,8 @@ class DMX
         static void WriteAll(uint8_t * data, uint16_t start, size_t size);  // copies the defined channels into the write buffer
 
         static uint8_t IsHealthy();                            // returns true, when a valid DMX signal was received within the last 500ms
+
+        static void changeDirection(DMXDirection direction);
         
     private:
         DMX();                                              // hide constructor
@@ -75,6 +77,12 @@ class DMX
         static long last_dmx_packet;                        // timestamp for the last received packet
 
         static uint8_t dmx_data[513];                       // stores the received dmx data
+
+        static bool initialized;
+        
+        static TaskHandle_t rxTaskHandle;                          //task handler for rx task
+
+        static TaskHandle_t txTaskHandle;                          //task handler for tx task
 
         static void uart_event_task(void *pvParameters);    // event task
 

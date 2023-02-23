@@ -29,6 +29,12 @@ long DMX::last_dmx_packet = 0;
 
 uint8_t DMX::dmx_data[513];
 
+bool DMX::initialized = false;
+
+TaskHandle_t DMX::rxTaskHandle = NULL;
+
+TaskHandle_t DMX::txTaskHandle = NULL;
+
 DMX::DMX()
 {
 
@@ -36,49 +42,37 @@ DMX::DMX()
 
 void DMX::Initialize(DMXDirection direction)
 {
-    // configure UART for DMX
-    uart_config_t uart_config =
-    {
-        .baud_rate = 250000,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_2,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
-    };
+   if(initialized == false){
+          // configure UART for DMX
+      uart_config_t uart_config =
+      {
+         .baud_rate = 250000,
+         .data_bits = UART_DATA_8_BITS,
+         .parity = UART_PARITY_DISABLE,
+         .stop_bits = UART_STOP_BITS_2,
+         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
+      };
 
-    uart_param_config(DMX_UART_NUM, &uart_config);
+      uart_param_config(DMX_UART_NUM, &uart_config);
 
-    // Set pins for UART
-    uart_set_pin(DMX_UART_NUM, DMX_SERIAL_OUTPUT_PIN, DMX_SERIAL_INPUT_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+      // Set pins for UART
+      uart_set_pin(DMX_UART_NUM, DMX_SERIAL_OUTPUT_PIN, DMX_SERIAL_INPUT_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
-    // install queue
-    uart_driver_install(DMX_UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 20, &dmx_rx_queue, 0);
+      // install queue
+      uart_driver_install(DMX_UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 20, &dmx_rx_queue, 0);
 
-    // create mutex for syncronisation
-    sync_dmx = xSemaphoreCreateMutex();
+      // create mutex for syncronisation
+      sync_dmx = xSemaphoreCreateMutex();
 
-    // set gpio for direction
-    gpio_pad_select_gpio(DMX_SERIAL_IO_PIN);
-    gpio_set_direction(DMX_SERIAL_IO_PIN, GPIO_MODE_OUTPUT);
+      // set gpio for direction
+      gpio_pad_select_gpio(DMX_SERIAL_IO_PIN);
+      gpio_set_direction(DMX_SERIAL_IO_PIN, GPIO_MODE_OUTPUT);
+   }
+   //start rx/tx tasks
+   changeDirection(direction);
 
-    // depending on parameter set gpio for direction change and start rx or tx thread
-    if(direction == output)
-    {
-        gpio_set_level(DMX_SERIAL_IO_PIN, 1);
-        dmx_state = DMX_OUTPUT;
-        
-        // create send task
-
-        xTaskCreatePinnedToCore(DMX::uart_send_task, "uart_send_task", 1024, NULL, 1, NULL, DMX_CORE);
-    }
-    else
-    {    
-        gpio_set_level(DMX_SERIAL_IO_PIN, 0);
-        dmx_state = DMX_IDLE;
-
-        // create receive task
-        xTaskCreatePinnedToCore(DMX::uart_event_task, "uart_event_task", 2048, NULL, 1, NULL, DMX_CORE);
-    }
+   //now library is initialized
+   initialized = true;
 }
 
 uint8_t DMX::Read(uint16_t channel)
@@ -165,6 +159,31 @@ uint8_t DMX::IsHealthy()
         return 1;
     }
     return 0;
+}
+
+void DMX::changeDirection(DMXDirection direction){
+   if( txTaskHandle != NULL ){   //stop tx task
+      vTaskDelete( txTaskHandle );
+   }
+   if( rxTaskHandle != NULL ){   //stop rx task
+      vTaskDelete( rxTaskHandle );
+   }
+   if(direction == output)
+   {
+      gpio_set_level(DMX_SERIAL_IO_PIN, 1);
+      dmx_state = DMX_OUTPUT;
+      
+      // create send task
+      xTaskCreatePinnedToCore(DMX::uart_send_task, "uart_send_task", 1024, NULL, 1, &DMX::txTaskHandle, DMX_CORE);
+   }
+   else
+   {    
+      gpio_set_level(DMX_SERIAL_IO_PIN, 0);
+      dmx_state = DMX_IDLE;
+
+      // create receive task
+      xTaskCreatePinnedToCore(DMX::uart_event_task, "uart_event_task", 2048, NULL, 1, &DMX::rxTaskHandle, DMX_CORE);
+   }
 }
 
 void DMX::uart_send_task(void*pvParameters)
