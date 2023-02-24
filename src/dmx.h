@@ -40,6 +40,8 @@
 
 #define DMX_CORE                0           // select the core the rx/tx thread should run on
 
+#define DMX_PRIORITY            1
+
 // #define DMX_IGNORE_THREADSAFETY 1           // set to 1 to disable all threadsafe mechanisms
 
 
@@ -62,6 +64,8 @@ class DMX
         static uint8_t IsHealthy();                            // returns true, when a valid DMX signal was received within the last 500ms
 
         static void changeDirection(DMXDirection direction);
+
+        static long getLastPacket();
         
     private:
         DMX();                                              // hide constructor

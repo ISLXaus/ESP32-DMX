@@ -162,19 +162,24 @@ uint8_t DMX::IsHealthy()
 }
 
 void DMX::changeDirection(DMXDirection direction){
-   if( txTaskHandle != NULL ){   //stop tx task
-      vTaskDelete( txTaskHandle );
+   if(initialized == true){
+      if( txTaskHandle != NULL ){   //stop tx task
+         vTaskDelete( txTaskHandle );
+      }
+      if( rxTaskHandle != NULL ){   //stop rx task
+         vTaskDelete( rxTaskHandle );
+      }
    }
-   if( rxTaskHandle != NULL ){   //stop rx task
-      vTaskDelete( rxTaskHandle );
-   }
+
+   
    if(direction == output)
    {
       gpio_set_level(DMX_SERIAL_IO_PIN, 1);
       dmx_state = DMX_OUTPUT;
       
       // create send task
-      xTaskCreatePinnedToCore(DMX::uart_send_task, "uart_send_task", 1024, NULL, 1, &DMX::txTaskHandle, DMX_CORE);
+      Serial.println("start uart_send_task");
+      xTaskCreatePinnedToCore(DMX::uart_send_task, "uart_send_task", 1024, NULL, DMX_PRIORITY, &DMX::txTaskHandle, DMX_CORE);
    }
    else
    {    
@@ -182,8 +187,13 @@ void DMX::changeDirection(DMXDirection direction){
       dmx_state = DMX_IDLE;
 
       // create receive task
-      xTaskCreatePinnedToCore(DMX::uart_event_task, "uart_event_task", 2048, NULL, 1, &DMX::rxTaskHandle, DMX_CORE);
+      Serial.println("start uart_event_task");
+      xTaskCreatePinnedToCore(DMX::uart_event_task, "uart_event_task", 2048, NULL, DMX_PRIORITY, &DMX::rxTaskHandle, DMX_CORE);
    }
+}
+
+long DMX::getLastPacket(){
+   return last_dmx_packet;
 }
 
 void DMX::uart_send_task(void*pvParameters)
@@ -244,6 +254,7 @@ void DMX::uart_event_task(void *pvParameters)
 #endif
                         // store received timestamp
                         last_dmx_packet = xTaskGetTickCount();
+                        // last_dmx_packet = millis();
 #ifndef DMX_IGNORE_THREADSAFETY
                         xSemaphoreGive(sync_dmx);
 #endif
