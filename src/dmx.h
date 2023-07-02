@@ -40,7 +40,7 @@
 
 #define DMX_CORE                0           // select the core the rx/tx thread should run on
 
-#define DMX_PRIORITY            1
+#define DMX_PRIORITY            2
 
 // #define DMX_IGNORE_THREADSAFETY 1           // set to 1 to disable all threadsafe mechanisms
 
