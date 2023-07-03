@@ -16,9 +16,7 @@
  */
 
 #include <Arduino.h>
-#include "dmx1.h"
 #include "dmxdefines.h"
-
 #include <stdint.h>
 #include <string.h>
 
@@ -28,14 +26,13 @@
 #include "driver/uart.h"
 #include "driver/gpio.h"    //added gpio.h
 
-#ifndef DMX_h
-#define DMX_h
+#ifndef DMX1_h
+#define DMX1_h
 
 
-class DMX
+class DMX1
 {
     public:
-    //UART2 (default)
         static void Initialize(DMXDirection direction);     // initialize library
         static uint8_t Read(uint16_t channel);              // returns the dmx value for the givven address (values from 1 to 512)
         static void ReadAll(uint8_t * data, uint16_t start, size_t size);   // copies the defined channels from the read buffer
@@ -46,7 +43,7 @@ class DMX
         static long getLastPacket();
 
     private:
-        DMX();                                              // hide constructor
+        DMX1();                                              // hide constructor
 
         static QueueHandle_t dmx_rx_queue;                  // queue for uart rx events
         static SemaphoreHandle_t sync_dmx;                  // semaphore for syncronising access to dmx array
@@ -57,8 +54,8 @@ class DMX
         static bool initialized;
         static TaskHandle_t rxTaskHandle;                          //task handler for rx task
         static TaskHandle_t txTaskHandle;                          //task handler for tx task
-        static void uart_event_task(void *pvParameters);    // event task
-        static void uart_send_task(void*pvParameters);      // transmit task
+        static void uart_event_task1(void *pvParameters);    // event task
+        static void uart_send_task1(void*pvParameters);      // transmit task
 };
 
 #endif
