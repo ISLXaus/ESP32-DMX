@@ -30,7 +30,7 @@
 #define DMX_UART_NUM            UART_NUM_2  // dmx uart
 #define HEALTHY_TIME            500         // timeout in ms 
 #define BUF_SIZE                2048        //  buffer size for rx events
-#define DMX_CORE                1           // select the core the rx/tx thread should run on
+#define DMX_CORE                0           // select the core the rx/tx thread should run on
 #define DMX_PRIORITY            3 
 #define DMX_IGNORE_THREADSAFETY 0           // set to 1 to disable all threadsafe mechanisms
 
@@ -57,7 +57,7 @@
 #define DMX_UART1_NUM            UART_NUM_1  // dmx uart
 #define HEALTHY1_TIME            500         // timeout in ms 
 #define BUF1_SIZE                1024        //  buffer size for rx events
-#define DMX1_CORE                1           // select the core the rx/tx thread should run on
+#define DMX1_CORE                0           // select the core the rx/tx thread should run on
 #define DMX1_PRIORITY            1 
 #define DMX1_IGNORE_THREADSAFETY 0           // set to 1 to disable all threadsafe mechanisms
 

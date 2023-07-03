@@ -35,6 +35,7 @@ DMX::DMX()
 
 void DMX::Initialize(DMXDirection direction)
 {
+    Serial.println("DMX init");
    if(initialized == false){
           // configure UART for DMX
       uart_config_t uart_config =
