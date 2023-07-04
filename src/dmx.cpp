@@ -20,6 +20,7 @@
 
 QueueHandle_t DMX::dmx_rx_queue;
 SemaphoreHandle_t DMX::sync_dmx;
+SemaphoreHandle_t DMX::sync_read;
 DMXState DMX::dmx_state = DMX_IDLE;
 uint16_t DMX::current_rx_addr = 0;
 long DMX::last_dmx_packet = 0;
@@ -27,6 +28,7 @@ uint8_t DMX::dmx_data[513];
 bool DMX::initialized = false;
 TaskHandle_t DMX::rxTaskHandle = NULL;
 TaskHandle_t DMX::txTaskHandle = NULL;
+bool DMX::newPacket = false;
 
 DMX::DMX()
 {
@@ -57,6 +59,7 @@ void DMX::Initialize(DMXDirection direction)
 
       // create mutex for syncronisation
       sync_dmx = xSemaphoreCreateMutex();
+      sync_read = xSemaphoreCreateMutex();
 
       // set gpio for direction
       gpio_pad_select_gpio(DMX_SERIAL_IO_PIN);
@@ -67,6 +70,14 @@ void DMX::Initialize(DMXDirection direction)
 
    //now library is initialized
    initialized = true;
+}
+
+bool DMX::hasNewPacket(){
+    bool _newPacket = false;
+    xSemaphoreTake(sync_read, portMAX_DELAY);
+    _newPacket = newPacket;
+    xSemaphoreGive(sync_read);
+    return _newPacket;
 }
 
 uint8_t DMX::Read(uint16_t channel)
@@ -85,6 +96,9 @@ uint8_t DMX::Read(uint16_t channel)
 #ifndef DMX_IGNORE_THREADSAFETY
     xSemaphoreGive(sync_dmx);
 #endif
+    xSemaphoreTake(sync_read, portMAX_DELAY);
+    newPacket = false;
+    xSemaphoreGive(sync_read);
     return tmp_dmx;
 }
 
@@ -99,6 +113,7 @@ void DMX::ReadAll(uint8_t * data, uint16_t start, size_t size)
     xSemaphoreTake(sync_dmx, portMAX_DELAY);
 #endif
     memcpy(data, (uint8_t *)dmx_data + start, size);
+    newPacket = false;
 #ifndef DMX_IGNORE_THREADSAFETY
     xSemaphoreGive(sync_dmx);
 #endif
@@ -178,7 +193,7 @@ void DMX::changeDirection(DMXDirection direction){
    else
    {    
       gpio_set_level(DMX_SERIAL_IO_PIN, 0);
-      dmx_state = DMX_IDLE;
+      dmx_state = DMX_IDLE; 
 
       // create receive task
       Serial.println("start uart_event_task");
@@ -248,6 +263,7 @@ void DMX::uart_event_task(void *pvParameters)
 #endif
                         // store received timestamp
                         last_dmx_packet = xTaskGetTickCount();
+                        
                         // last_dmx_packet = millis();
 #ifndef DMX_IGNORE_THREADSAFETY
                         xSemaphoreGive(sync_dmx);
@@ -268,9 +284,13 @@ void DMX::uart_event_task(void *pvParameters)
                                 dmx_data[current_rx_addr++] = dtmp[i];
                             }
                         }
+                        
 #ifndef DMX_IGNORE_THREADSAFETY
                         xSemaphoreGive(sync_dmx);
 #endif
+                        xSemaphoreTake(sync_read, portMAX_DELAY);
+                        newPacket = true;
+                        xSemaphoreGive(sync_read);
                     }
                     break;
                 case UART_BREAK:

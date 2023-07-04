@@ -44,12 +44,14 @@ class DMX
         static uint8_t IsHealthy();                            // returns true, when a valid DMX signal was received within the last 500ms
         static void changeDirection(DMXDirection direction);
         static long getLastPacket();
+        static bool hasNewPacket(); 
 
     private:
         DMX();                                              // hide constructor
 
         static QueueHandle_t dmx_rx_queue;                  // queue for uart rx events
         static SemaphoreHandle_t sync_dmx;                  // semaphore for syncronising access to dmx array
+        static SemaphoreHandle_t sync_read;
         static DMXState dmx_state;                           // status, in which recevied state we are
         static uint16_t current_rx_addr;                    // last received dmx channel
         static long last_dmx_packet;                        // timestamp for the last received packet
@@ -59,6 +61,7 @@ class DMX
         static TaskHandle_t txTaskHandle;                          //task handler for tx task
         static void uart_event_task(void *pvParameters);    // event task
         static void uart_send_task(void*pvParameters);      // transmit task
+        static bool newPacket;
 };
 
 #endif
