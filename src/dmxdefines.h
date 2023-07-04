@@ -37,12 +37,11 @@
     #define DMX_SERIAL_OUTPUT_PIN   GPIO_NUM_21 // pin for dmx tx 21
     #define DMX_SERIAL_IO_PIN       GPIO_NUM_1  // pin for dmx rx/tx change
 
-    #define DMX_UART_NUM            UART_NUM_1  // dmx uart
+    #define DMX_UART_NUM            UART_NUM_0  // dmx uart
     #define HEALTHY_TIME            500         // timeout in ms 
     #define BUF_SIZE                1024        //  buffer size for rx events
-    #define DMX_CORE                1           // select the core the rx/tx thread should run on
+    #define DMX_CORE                0           // select the core the rx/tx thread should run on
     #define DMX_PRIORITY            2 
-    #define DMX_IGNORE_THREADSAFETY 0           // set to 1 to disable all threadsafe mechanisms
 #endif
 
 /*** UART1 ***/
