@@ -29,15 +29,18 @@ bool DMX::initialized = false;
 TaskHandle_t DMX::rxTaskHandle = NULL;
 TaskHandle_t DMX::txTaskHandle = NULL;
 bool DMX::newPacket = false;
+uint8_t DMX::selpin = -1;
+uint8_t DMX::ledrxpin = -1;
 
 DMX::DMX()
 {
 
 }
 
-void DMX::Initialize(DMXDirection direction)
+void DMX::Initialize(DMXDirection direction, uint8_t pin_led_rx)
 {
     Serial.println("DMX init");
+    ledrxpin = pin_led_rx;
    if(initialized == false){
           // configure UART for DMX
       uart_config_t uart_config =
@@ -62,14 +65,56 @@ void DMX::Initialize(DMXDirection direction)
       sync_read = xSemaphoreCreateMutex();
 
       // set gpio for direction
-      gpio_pad_select_gpio(DMX_SERIAL_IO_PIN);
-      gpio_set_direction(DMX_SERIAL_IO_PIN, GPIO_MODE_OUTPUT);
+
+
+      pinMode(selpin, OUTPUT);
+      pinMode(ledrxpin, OUTPUT);
    }
    //start rx/tx tasks
    changeDirection(direction);
 
    //now library is initialized
    initialized = true;
+}
+
+void DMX::Initialize(uint8_t pin_sel,uint8_t pin_led_rx, DMXDirection direction)
+{
+    selpin = pin_sel;   //select pin stuff...
+    ledrxpin = pin_led_rx;
+
+    Serial.println("DMX init");
+    if(initialized == false){
+            // configure UART for DMX
+        uart_config_t uart_config =
+        {
+            .baud_rate = 250000,
+            .data_bits = UART_DATA_8_BITS,
+            .parity = UART_PARITY_DISABLE,
+            .stop_bits = UART_STOP_BITS_2,
+            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
+        };
+
+        uart_param_config(DMX_UART_NUM, &uart_config);
+
+        // Set pins for UART
+        uart_set_pin(DMX_UART_NUM, DMX_SERIAL_OUTPUT_PIN, DMX_SERIAL_INPUT_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+
+        // install queue
+        uart_driver_install(DMX_UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 20, &dmx_rx_queue, 0);
+
+        // create mutex for syncronisation
+        sync_dmx = xSemaphoreCreateMutex();
+        sync_read = xSemaphoreCreateMutex();
+
+        // set gpio for direction
+        gpio_pad_select_gpio(DMX_SERIAL_IO_PIN);
+        gpio_set_direction(DMX_SERIAL_IO_PIN, GPIO_MODE_OUTPUT);
+    }
+    //start rx/tx tasks
+    changeDirection(direction);
+
+    //now library is initialized
+    initialized = true;
 }
 
 bool DMX::hasNewPacket(){
@@ -154,6 +199,7 @@ void DMX::WriteAll(uint8_t * data, uint16_t start, size_t size)
 
 uint8_t DMX::IsHealthy()
 {
+    if(ledrxpin != -1)pinMode(ledrxpin, OUTPUT);
     // get timestamp of last received packet
 #ifndef DMX_IGNORE_THREADSAFETY
     xSemaphoreTake(sync_dmx, portMAX_DELAY);
@@ -165,40 +211,45 @@ uint8_t DMX::IsHealthy()
     // check if elapsed time < defined timeout
     if(xTaskGetTickCount() - dmx_timeout < HEALTHY_TIME)
     {
+        if(ledrxpin != -1)digitalWrite(ledrxpin, HIGH);
         return 1;
     }
+    if(ledrxpin != -1)digitalWrite(ledrxpin, LOW);
     return 0;
 }
 
 void DMX::changeDirection(DMXDirection direction){
-   if(initialized == true){
-      if( txTaskHandle != NULL ){   //stop tx task
-         vTaskDelete( txTaskHandle );
-      }
-      if( rxTaskHandle != NULL ){   //stop rx task
-         vTaskDelete( rxTaskHandle );
-      }
-   }
 
-   
-   if(direction == output)
-   {
-      gpio_set_level(DMX_SERIAL_IO_PIN, 1);
-      dmx_state = DMX_OUTPUT;
-      
-      // create send task
-      Serial.println("start uart_send_task");
-      xTaskCreatePinnedToCore(DMX::uart_send_task, "uart_send_task", BUF_SIZE, NULL, DMX_PRIORITY, &DMX::txTaskHandle, DMX_CORE);
-   }
-   else
-   {    
-      gpio_set_level(DMX_SERIAL_IO_PIN, 0);
-      dmx_state = DMX_IDLE; 
 
-      // create receive task
-      Serial.println("start uart_event_task");
-      xTaskCreatePinnedToCore(DMX::uart_event_task, "uart_event_task", BUF_SIZE, NULL, DMX_PRIORITY, &DMX::rxTaskHandle, DMX_CORE);
-   }
+
+    if(initialized == true){
+        if( txTaskHandle != NULL ){   //stop tx task
+            vTaskDelete( txTaskHandle );
+        }
+        if( rxTaskHandle != NULL ){   //stop rx task
+            vTaskDelete( rxTaskHandle );
+        }
+    }
+
+
+    if(direction == output) //output/tx
+    {
+        if(selpin != -1) digitalWrite(selpin, HIGH);
+        dmx_state = DMX_OUTPUT;
+        
+        // create send task
+        Serial.println("start uart_send_task");
+        xTaskCreatePinnedToCore(DMX::uart_send_task, "uart_send_task", BUF_SIZE, NULL, DMX_PRIORITY, &DMX::txTaskHandle, DMX_CORE);
+    }
+    else    //input/rx
+    {  
+        if(selpin != -1) digitalWrite(selpin, LOW);
+        dmx_state = DMX_IDLE; 
+
+        // create receive task
+        Serial.println("start uart_event_task");
+        xTaskCreatePinnedToCore(DMX::uart_event_task, "uart_event_task", BUF_SIZE, NULL, DMX_PRIORITY, &DMX::rxTaskHandle, DMX_CORE);
+    }
 }
 
 long DMX::getLastPacket(){
@@ -262,8 +313,7 @@ void DMX::uart_event_task(void *pvParameters)
                         xSemaphoreTake(sync_dmx, portMAX_DELAY);
 #endif
                         // store received timestamp
-                        last_dmx_packet = xTaskGetTickCount();
-                        
+                        last_dmx_packet = xTaskGetTickCount();                    
                         // last_dmx_packet = millis();
 #ifndef DMX_IGNORE_THREADSAFETY
                         xSemaphoreGive(sync_dmx);
