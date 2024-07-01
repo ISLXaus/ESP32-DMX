@@ -150,10 +150,7 @@ uint8_t DMX::Read(uint16_t channel)
 void DMX::ReadAll(uint8_t * data, uint16_t start, size_t size)
 {
     // restrict acces to dmx array to valid values
-    if(start < 1 || start > 512 || start + size > 513)
-    {
-        return;
-    }
+    if(start < 1 || start > 512 || start + size > 513)return;
 #ifndef DMX_IGNORE_THREADSAFETY
     xSemaphoreTake(sync_dmx, portMAX_DELAY);
 #endif
