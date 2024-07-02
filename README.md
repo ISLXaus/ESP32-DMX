@@ -1,5 +1,10 @@
 # ESP32 DMX512
+edits:
+- use 2 UART-based DMX inputs
+- define LED pin that goes high when DMX is received
+- define RX/TX-pin that is toggled when switching from RX to TX
 
+original:
 Example code for receiving and transmitting DMX512 with ESP32 and RS485 transceiver IC like MAX485 or isolated ADM2486.
 
 Can be used with Arduino or plain ESP-IDF.
