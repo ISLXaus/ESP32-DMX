@@ -36,8 +36,8 @@ class DMX
 {
     public:
     //UART2 (default)
-        static void Initialize(DMXDirection direction, uint8_t pin_led_rx);     // initialize library
-        static void Initialize(uint8_t pin_sel,uint8_t pin_led_rx, DMXDirection direction);
+        static void Initialize(DMXDirection direction, int pin_led_rx);     // initialize library
+        static void Initialize(int pin_sel,int pin_led_rx, DMXDirection direction);
         static uint8_t Read(uint16_t channel);              // returns the dmx value for the givven address (values from 1 to 512)
         static void ReadAll(uint8_t * data, uint16_t start, size_t size);   // copies the defined channels from the read buffer
         static void Write(uint16_t channel, uint8_t value); // writes the dmx value to the buffer
@@ -46,6 +46,7 @@ class DMX
         static void changeDirection(DMXDirection direction);
         static long getLastPacket();
         static bool hasNewPacket(); 
+        static void setCallback(void (*fptr)(uint8_t* data));
 
     private:
         DMX();                                              // hide constructor
@@ -63,8 +64,9 @@ class DMX
         static void uart_event_task(void *pvParameters);    // event task
         static void uart_send_task(void*pvParameters);      // transmit task
         static bool newPacket;
-        static uint8_t selpin;
-        static uint8_t ledrxpin;
+        static int selpin;
+        static int ledrxpin;
+        static void (*dmxCallback)(uint8_t* data);
 };
 
 #endif

@@ -29,15 +29,16 @@ bool DMX::initialized = false;
 TaskHandle_t DMX::rxTaskHandle = NULL;
 TaskHandle_t DMX::txTaskHandle = NULL;
 bool DMX::newPacket = false;
-uint8_t DMX::selpin = -1;
-uint8_t DMX::ledrxpin = -1;
+int DMX::selpin = -1;
+int DMX::ledrxpin = -1;
+void (*DMX::dmxCallback)(uint8_t* data);
 
 DMX::DMX()
 {
 
 }
 
-void DMX::Initialize(DMXDirection direction, uint8_t pin_led_rx)
+void DMX::Initialize(DMXDirection direction, int pin_led_rx)
 {
     Serial.println("DMX init");
     ledrxpin = pin_led_rx;
@@ -77,7 +78,7 @@ void DMX::Initialize(DMXDirection direction, uint8_t pin_led_rx)
    initialized = true;
 }
 
-void DMX::Initialize(uint8_t pin_sel,uint8_t pin_led_rx, DMXDirection direction)
+void DMX::Initialize(int pin_sel,int pin_led_rx, DMXDirection direction)
 {
     selpin = pin_sel;   //select pin stuff...
     ledrxpin = pin_led_rx;
@@ -330,6 +331,7 @@ void DMX::uart_event_task(void *pvParameters)
                             {
                                 dmx_data[current_rx_addr++] = dtmp[i];
                             }
+                            
                         }
                         
 #ifndef DMX_IGNORE_THREADSAFETY
@@ -337,6 +339,7 @@ void DMX::uart_event_task(void *pvParameters)
 #endif
                         xSemaphoreTake(sync_read, portMAX_DELAY);
                         newPacket = true;
+                        if(dmxCallback)dmxCallback(dmx_data);
                         xSemaphoreGive(sync_read);
                     }
                     break;
@@ -360,4 +363,9 @@ void DMX::uart_event_task(void *pvParameters)
             }
         }
     }
+}
+
+
+void DMX::setCallback(void (*fptr)(uint8_t* data)) {
+    dmxCallback = fptr;
 }
