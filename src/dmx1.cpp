@@ -58,7 +58,7 @@ void DMX1::Initialize(DMXDirection direction)
       sync_dmx = xSemaphoreCreateMutex();
 
       // set gpio for direction
-      gpio_pad_select_gpio(DMX_SERIAL1_IO_PIN);
+      esp_rom_gpio_pad_select_gpio(DMX_SERIAL1_IO_PIN);
       gpio_set_direction(DMX_SERIAL1_IO_PIN, GPIO_MODE_OUTPUT);
    }
    //start rx/tx tasks
